@@ -188,7 +188,7 @@ def convert_dict(obj, ids, parent, attr_type, item_func, cdata, item_wrap):
         attr = {} if not ids else {"id": f"{get_unique_id(parent)}"}
 
         key, attr = make_valid_xml_name(key, attr)
-
+        
         # since bool is also a subtype of number.Number and int, the check for bool
         # never comes and hence we get wrong value for the xml type bool
         # here, we just change order and check for bool first, because no other
@@ -226,20 +226,12 @@ def convert_dict(obj, ids, parent, attr_type, item_func, cdata, item_wrap):
         elif isinstance(val, collections.abc.Iterable) and val:
             if attr_type:
                 attr["type"] = get_xml_type(val)
-            if (
-                isinstance(val[0], numbers.Number)
-                or isinstance(val[0], str)
-                and not item_wrap
-            ):
-                addline(
-                    convert_list(val, ids, key, attr_type, item_func, cdata, item_wrap)
-                )
-            else:
-                attrstring = make_attrstring(attr)
-                list_str = convert_list(
-                    val, ids, key, attr_type, item_func, cdata, item_wrap
-                )
-                addline(f"<{key}{attrstring}>{list_str}</{key}>")
+            attrstring = make_attrstring(attr)
+            list_str = convert_list(
+                val, ids, key, attr_type, item_func, cdata, item_wrap
+            )
+            addline(f"<{key}{attrstring}>{list_str}</{key}>")
+        
         elif not val:
             addline(convert_none(key, val, attr_type, attr, cdata))
 
@@ -265,7 +257,11 @@ def convert_list(items, ids, parent, attr_type, item_func, cdata, item_wrap):
             f'Looping inside convert_list(): item="{str(item)}", item_name="{item_name}", type="{type(item).__name__}"'
         )
         attr = {} if not ids else {"id": f"{this_id}_{i + 1}"}
-        if isinstance(item, (numbers.Number, str)):
+        
+        if isinstance(item, bool):
+            addline(convert_bool(item_name, item, attr_type, attr, cdata))
+        
+        elif isinstance(item, (numbers.Number, str)):
             if item_wrap:
                 addline(
                     convert_kv(
@@ -297,9 +293,6 @@ def convert_list(items, ids, parent, attr_type, item_func, cdata, item_wrap):
                     cdata=cdata,
                 )
             )
-
-        elif isinstance(item, bool):
-            addline(convert_bool(item_name, item, attr_type, attr, cdata))
 
         elif isinstance(item, dict):
             item_dict_str = convert_dict(
